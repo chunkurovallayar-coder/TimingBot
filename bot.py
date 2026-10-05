@@ -1,38 +1,54 @@
 import asyncio
+from datetime import datetime
+import pytz
 from telethon import TelegramClient
 from telethon.sessions import StringSession
+from telethon.tl.functions.account import UpdateProfileRequest
 
-# Ваш массив с аккаунтами (оставьте как есть)
-ACCOUNTS = [
-    {
-        "name": "Аккаунт 1",
-        "session": "1BVtsOGgBu0Z7R-bV9-cYmqlwlbdnqlf7kmcOsU6oPkklWyn3_VthlRtx_t3x_bZZ5FJdQpiEhr7GctrTzVW_q51jsq21edBdSHTC_iH4g_sgzY-WkPrKxp5sweKI3UKWT6V-PYG8tn3S4Q6Ebo9HLWyO71zV_3yhzHmHTvoe0Cip9c7OiGpkuFmg3J8McZRLEsTcnoqvYgexqigjXA-zt3R675VXcAl3Ootz-C1gOtQnqnchbKsjE6i51kkFCFur5KfyLtPTOsRAuuak8ctQj12_78W1jl1jgPi9a0SOZYcGY_bQPCShTsDhhtyi1m9h8ajGp1f7uvt-NwxDu8I4ZYrZXvU01lU=",
-        "api_id": 2040,
-        "api_hash": "b18441a1ff607e10a989891a5462e627",
-        "original_first_name": "псих",
-        "format": " | %H:%M",
-        "timezone": "Europe/Moscow",
-        "enabled": True,
-    },
-]
+# Импортируем настройки из вашего config.py
+from config import ACCOUNTS 
+
+async def update_name(account):
+    session_str = account["session"]
+    api_id = account["api_id"]
+    api_hash = account["api_hash"]
+    original_name = account["original_first_name"]
+    time_format = account["format"]
+    tz = pytz.timezone(account["timezone"])
+    
+    # Подключаемся БЕЗ файлов, строго используя StringSession
+    client = TelegramClient(StringSession(session_str), api_id, api_hash)
+    
+    print(f"[{account['name']}] Подключение к Telegram...")
+    await client.start()
+    print(f"[{account['name']}] Авторизация успешна!")
+    
+    try:
+        while True:
+            # Форматируем время и обновляем имя
+            current_time = datetime.now(tz).strftime(time_format)
+            new_first_name = f"{original_name}{current_time}"
+            
+            await client(UpdateProfileRequest(first_name=new_first_name))
+            print(f"[{account['name']}] Имя изменено на: {new_first_name}")
+            
+            # Ждем 60 секунд до следующего обновления
+            await asyncio.sleep(60)
+    except Exception as e:
+        print(f"[{account['name']}] Ошибка в цикле: {e}")
+    finally:
+        await client.disconnect()
 
 async def main():
+    tasks = []
     for account in ACCOUNTS:
-        if not account["enabled"]:
-            continue
+        if account.get("enabled", True):
+            tasks.append(update_name(account))
             
-        print(f"Запуск бота для: {account['name']}")
-        
-        # ГЛАВНОЕ ИСПРАВЛЕНИЕ: Обернуть строку в StringSession()
-        client = TelegramClient(
-            StringSession(account["session"]), 
-            account["api_id"], 
-            account["api_hash"]
-        )
-        
-        await client.start()
-        
-        # Дальше идет ваш код работы с клиентом...
-        print("Успешно подключено!")
+    if tasks:
+        await asyncio.gather(*tasks)
+    else:
+        print("Нет активных аккаунтов в config.py")
 
-asyncio.run(main())
+if __name__ == "__main__":
+    asyncio.run(main())
