@@ -1,5 +1,4 @@
 import asyncio
-import asyncio
 from telethon import TelegramClient
 from telethon.sessions import StringSession
 from datetime import datetime
@@ -16,10 +15,10 @@ async def update_name(account):
     session = account["session"]
 
     async with TelegramClient(
-        StringSession(session),
-        api_id,
-        api_hash
-    ) as client:
+    StringSession(session),
+    api_id,
+    api_hash
+) as client:
 
         while True:
             now = datetime.now(tz).strftime(fmt)
