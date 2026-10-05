@@ -6,14 +6,14 @@ import pytz
 from config import ACCOUNTS
 
 async def update_name(account):
-    session_file = account['session_file']
     api_id = account['api_id']
     api_hash = account['api_hash']
     name = account['original_first_name']
     fmt = account['format']
     tz = pytz.timezone(account['timezone'])
+    session = account['session']
     
-    async with TelegramClient(session_file, api_id, api_hash) as client:
+    async with TelegramClient(StringSession(session), api_id, api_hash) as client:
         while True:
             now = datetime.now(tz).strftime(fmt)
             new_name = f"{name}{now}"
